@@ -43,6 +43,11 @@ bundle install
 bundle exec rspec
 ```
 
+- Build gem
+```sh
+jruby -S gem build logstash-codec-avro_header.gemspec
+```
+
 ### 2. Running your unpublished Plugin in Logstash
 
 #### 2.1 Run in a local Logstash clone

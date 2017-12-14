@@ -6,6 +6,7 @@ require "logstash/codecs/base"
 require "logstash/event"
 require "logstash/timestamp"
 require "logstash/util"
+# require 'uri'
 
 # Read serialized Avro records as Logstash events
 #
@@ -61,6 +62,8 @@ require "logstash/util"
 #     codec => avro {
 #         schema_uri => "/tmp/schema.avsc"
 #         header_length => 10
+#         Marker, specified as integer to make Logstash config parser happy
+#         header_marker => [195, 1] # 0xC3, 0x01
 #     }
 #   }
 # }
@@ -80,6 +83,9 @@ class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
   # number of header bytes to skip before the Avro data
   config :header_length, :validate => :number, :default => 0
 
+  # marker bytes at beginning of header
+  config :header_marker, :validate => :number, :list => true, :default => []
+
   # tag events with `_avroparsefailure` when decode fails
   config :tag_on_failure, :validate => :boolean, :default => false
 
@@ -94,12 +100,29 @@ class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
 
   public
   def decode(data)
+    @logger.debug(URI.escape(data))
     datum = StringIO.new(Base64.strict_decode64(data)) rescue StringIO.new(data)
     if header_length > 0
       if data.length < header_length
         @logger.error('message is too small to decode header')
       else
-        datum.read(header_length)
+        if header_marker and header_marker.length > 0
+          marker_length = header_marker.length
+          marker = datum.read(marker_length)
+          marker_bytes = marker.unpack("C" * marker_length)
+          if marker_bytes == header_marker
+            hash_length = header_length - marker_length
+            if hash_length > 0
+              datum.read(hash_length)
+            end
+          else
+            @logger.error('header marker mismatch')
+            datum.rewind
+            datum.read(header_length)
+          end
+        else
+          datum.read(header_length)
+        end
       end
     end
     decoder = Avro::IO::BinaryDecoder.new(datum)
