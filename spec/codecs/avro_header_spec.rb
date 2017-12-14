@@ -56,6 +56,40 @@ describe LogStash::Codecs::AvroHeader do
       end
     end
 
+    context "#decode binary data with header" do
+      let (:avro_config) {{ 'header_length' => 10,
+                            'schema_uri' => '
+                          {"type": "record", "name": "Test",
+                          "fields": [{"name": "foo", "type": ["null", "string"]},
+                                     {"name": "bar", "type": "int"}]}' }}
+
+      it "should return an LogStash::Event from raw and base64 encoded avro data with a header" do
+        schema = Avro::Schema.parse(avro_config['schema_uri'])
+        dw = Avro::IO::DatumWriter.new(schema)
+        buffer = StringIO.new
+        header = [0xC3, 0x01, 0xDEADBEEF00000001].pack('CCQ<')
+        buffer.write(header)
+
+        encoder = Avro::IO::BinaryEncoder.new(buffer)
+        dw.write(test_event.to_hash, encoder)
+
+        subject.decode(Base64.strict_encode64(buffer.string)) do |event|
+          insist {event.is_a? LogStash::Event}
+          insist {event.get("foo")} == test_event.get("foo")
+          insist {event.get("bar")} == test_event.get("bar")
+        end
+        subject.decode(buffer.string) do |event|
+          insist {event.is_a? LogStash::Event}
+          insist {event.get("foo")} == test_event.get("foo")
+          insist {event.get("bar")} == test_event.get("bar")
+        end
+      end
+
+      it "should throw exception if decoding fails" do
+        expect {subject.decode("not avro") {|_| }}.to raise_error NoMethodError
+      end
+    end
+
     context "#encode" do
       it "should return avro data from a LogStash::Event" do
         got_event = false

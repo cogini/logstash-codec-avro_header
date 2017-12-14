@@ -27,7 +27,7 @@ require "logstash/util"
 #
 #
 # ==== Usage
-# Example usage with Kafka input.
+# To read messages from Kafka input:
 #
 # [source,ruby]
 # ----------------------------------
@@ -45,6 +45,26 @@ require "logstash/util"
 #   ...
 # }
 # ----------------------------------
+#
+# Avro messages may have a header before the binary data indicating the schema,
+# as described in the
+# https://avro.apache.org/docs/1.8.2/spec.html#single_object_encoding[the Avro
+# spec].
+#
+# The length of the prefix depends on how many bytes are used as the marker
+# and the fingerprint algorithm.
+#
+# [source,ruby]
+# ----------------------------------
+# input {
+#   kafka {
+#     codec => avro {
+#         schema_uri => "/tmp/schema.avsc"
+#         header_length => 10
+#     }
+#   }
+# }
+# ----------------------------------
 class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
   config_name "avro_header"
 
@@ -56,6 +76,9 @@ class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
   # * http - `http://example.com/schema.avsc`
   # * file - `/path/to/schema.avsc`
   config :schema_uri, :validate => :string, :required => true
+
+  # number of header bytes to skip before the Avro data
+  config :header_length, :validate => :number, :default => 0
 
   # tag events with `_avroparsefailure` when decode fails
   config :tag_on_failure, :validate => :boolean, :default => false
@@ -72,6 +95,13 @@ class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
   public
   def decode(data)
     datum = StringIO.new(Base64.strict_decode64(data)) rescue StringIO.new(data)
+    if header_length > 0
+      if data.length < header_length
+        @logger.error('message is too small to decode header')
+      else
+        datum.read(header_length)
+      end
+    end
     decoder = Avro::IO::BinaryDecoder.new(datum)
     datum_reader = Avro::IO::DatumReader.new(@schema)
     yield LogStash::Event.new(datum_reader.read(decoder))
@@ -92,4 +122,5 @@ class LogStash::Codecs::AvroHeader < LogStash::Codecs::Base
     dw.write(event.to_hash, encoder)
     @on_event.call(event, Base64.strict_encode64(buffer.string))
   end
+
 end
