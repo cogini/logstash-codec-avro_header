@@ -49,15 +49,20 @@ bundle exec rspec
 
 - Edit Logstash `Gemfile` and add the local plugin path, for example:
 ```ruby
-gem "logstash-codec-awesome", :path => "/your/local/logstash-codec-awesome"
+gem "logstash-codec-avro_header", :path => "/your/local/logstash-codec-avro_header"
 ```
 - Install plugin
 ```sh
+# Logstash 2.3 and higher
 bin/logstash-plugin install --no-verify
+
+# Prior to Logstash 2.3
+bin/plugin install --no-verify
+
 ```
 - Run Logstash with your plugin
 ```sh
-bin/logstash -e 'codec {awesome {}}'
+bin/logstash -e 'codec {avro_header {}}'
 ```
 At this point any modifications to the plugin code will be applied to this local Logstash setup. After modifying the plugin, simply rerun Logstash.
 
@@ -67,11 +72,24 @@ You can use the same **2.1** method to run your plugin in an installed Logstash 
 
 - Build your plugin gem
 ```sh
-gem build logstash-codec-awesome.gemspec
+gem build logstash-codec-avro_header.gemspec
 ```
+
+- Install the plugin from a local gem
+```sh
+bin/logstash-plugin install /your/local/plugin/logstash-codec-avro_header.gem
+```
+
+or
+
 - Install the plugin from the Logstash home
 ```sh
-bin/logstash-plugin install /your/local/plugin/logstash-codec-awesome.gem
+# Logstash 2.3 and higher
+bin/logstash-plugin install --no-verify
+
+# Prior to Logstash 2.3
+bin/plugin install --no-verify
+
 ```
 - Start Logstash and proceed to test the plugin
 
