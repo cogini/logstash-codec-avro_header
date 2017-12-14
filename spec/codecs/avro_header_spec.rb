@@ -17,7 +17,7 @@ describe LogStash::Codecs::AvroHeader do
     subject do
       allow_any_instance_of(LogStash::Codecs::AvroHeader).to \
       receive(:open_and_read).and_return(avro_config['schema_uri'])
-      next LogStash::Codecs::Avro.new(avro_config)
+      next LogStash::Codecs::AvroHeader.new(avro_config)
     end
 
     context "#decode" do
@@ -91,7 +91,7 @@ describe LogStash::Codecs::AvroHeader do
         subject do
           allow_any_instance_of(LogStash::Codecs::AvroHeader).to \
       receive(:open_and_read).and_return(avro_config['schema_uri'])
-          next LogStash::Codecs::Avro.new(avro_config)
+          next LogStash::Codecs::AvroHeader.new(avro_config)
         end
 
         it "should correctly encode binary data" do
