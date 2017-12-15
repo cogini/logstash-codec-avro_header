@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
 
-  s.name            = 'logstash-codec-logstash-codec-avro_header'
+  s.name            = 'logstash-codec-avro_header'
   s.version         = '3.2.4'
   s.platform        = 'java'
   s.licenses        = ['Apache-2.0']
-  s.summary         = "Reads serialized Avro records as Logstash events"
+  s.summary         = "Reads serialized Avro records as Logstash events, with a header identifying the schema"
   s.description     = "This gem is a Logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/logstash-plugin install gemname. This gem is not a stand-alone program"
   s.authors         = ["Elastic"]
   s.email           = 'info@elastic.co'
